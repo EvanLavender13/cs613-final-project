@@ -4,6 +4,7 @@ from abc import abstractmethod
 
 eps = 1e-200
 
+
 class Objective(object):
 
     def set_model(self, model, X, y):
@@ -15,6 +16,7 @@ class Objective(object):
     def evaluate(self, w):
         pass
 
+
 class RSSObjective(Objective):
 
     def evaluate(self, w):
@@ -22,12 +24,14 @@ class RSSObjective(Objective):
         error = np.linalg.norm(self.y - y_i, ord=2)
         return -error
 
+
 class ScoreObjective(Objective):
 
     def evaluate(self, w):
         self.model.intercept_ = w[0]
         self.model.coef_ = np.array([w[1:]])
         return self.model.score(self.X, self.y)
+
 
 class RidgeObjective(Objective):
 
@@ -40,6 +44,7 @@ class RidgeObjective(Objective):
         error = np.linalg.norm(self.y - y_i, ord=2) + penalty
         return -error
 
+
 class CrossEntropyObjective(Objective):
 
     def sigmoid(self, y_i):
@@ -47,8 +52,10 @@ class CrossEntropyObjective(Objective):
 
     def evaluate(self, w):
         y_i = self.sigmoid(w[0] + np.dot(self.X, w[1:]))
-        error = np.sum(self.y * np.log(y_i + eps) + (1 - self.y) * np.log((1 - y_i) + eps))
+        error = np.sum(self.y * np.log(y_i + eps) +
+                       (1 - self.y) * np.log((1 - y_i) + eps))
         return error
+
 
 class MultiCrossEntropyObjective(Objective):
 
