@@ -12,13 +12,13 @@ from sklearn.utils.validation import check_X_y, check_array, check_random_state
 
 class EvolutionStrategy(BaseEstimator):
 
-    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None):
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
-        self.classifier = False
+        self.verbose = verbose
 
     def fit(self, X, y):
         X, y = check_X_y(X, y)
@@ -35,11 +35,8 @@ class EvolutionStrategy(BaseEstimator):
         self.intercept_ = self.mu_[0]
         self.coef_ = np.array([self.mu_[1:]])
 
-        if self.classifier:
-            self.classes_ = np.unique(y)
-
         self._pre_iterate()
-        for g in tqdm(range(self.n_iter)):
+        for g in tqdm(range(self.n_iter), disable=not self.verbose):
             pop = self._sample_population()
             fit = np.fromiter(map(self.objective.evaluate, pop), np.float)
             self.mu_ = self._update(pop, fit)
@@ -67,12 +64,13 @@ class EvolutionStrategy(BaseEstimator):
 
 
 class SimpleES(EvolutionStrategy):
-    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, sigma=0.2):
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=0.2):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.sigma = sigma
 
     def _sample_population(self):
@@ -85,14 +83,14 @@ class SimpleES(EvolutionStrategy):
 
 class SimpleESRegressor(SimpleES, LinearModel, RegressorMixin):
 
-    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, sigma=0.2):
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=0.2):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.sigma = sigma
-        self.classifier = False
 
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
@@ -100,14 +98,14 @@ class SimpleESRegressor(SimpleES, LinearModel, RegressorMixin):
 
 class SimpleESClassifier(SimpleES, LinearClassifierMixin):
 
-    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, sigma=0.2):
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=0.2):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.sigma = sigma
-        self.classifier = True
 
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
@@ -115,15 +113,15 @@ class SimpleESClassifier(SimpleES, LinearClassifierMixin):
 
 class GeneticES(EvolutionStrategy):
 
-    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, sigma=0.2, p_elite=0.1):
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=0.2, p_elite=0.1):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.sigma = sigma
         self.p_elite = p_elite
-        self.classifier = True
 
     def _pre_iterate(self):
         self.n_elite_ = np.int(self.n_pop * self.p_elite)
@@ -157,15 +155,15 @@ class GeneticES(EvolutionStrategy):
 
 class GeneticESRegressor(GeneticES, LinearModel, RegressorMixin):
 
-    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, sigma=0.2, p_elite=0.1):
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=0.2, p_elite=0.1):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.sigma = sigma
         self.p_elite = p_elite
-        self.classifier = False
 
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
@@ -173,15 +171,15 @@ class GeneticESRegressor(GeneticES, LinearModel, RegressorMixin):
 
 class GeneticESClassifier(GeneticES, LinearClassifierMixin):
 
-    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, sigma=0.2, p_elite=0.1):
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=0.2, p_elite=0.1):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.sigma = sigma
         self.p_elite = p_elite
-        self.classifier = True
 
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
@@ -189,12 +187,13 @@ class GeneticESClassifier(GeneticES, LinearClassifierMixin):
 
 class NaturalES(EvolutionStrategy):
 
-    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, sigma=0.2, alpha=0.1):
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=0.2, alpha=0.1):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.sigma = sigma
         self.alpha = alpha
 
@@ -210,15 +209,15 @@ class NaturalES(EvolutionStrategy):
 
 class NaturalESRegressor(NaturalES, LinearModel, RegressorMixin):
 
-    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, sigma=0.2, alpha=0.1):
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=0.2, alpha=0.1):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.sigma = sigma
         self.alpha = alpha
-        self.classifier = False
 
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
@@ -226,15 +225,15 @@ class NaturalESRegressor(NaturalES, LinearModel, RegressorMixin):
 
 class NaturalESClassifier(NaturalES, LinearClassifierMixin):
 
-    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, sigma=0.2, alpha=0.1):
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=0.2, alpha=0.1):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.sigma = sigma
         self.alpha = alpha
-        self.classifier = True
 
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
@@ -299,16 +298,16 @@ class CMAES(BaseEstimator, RegressorMixin):
 
 class DifferentialEvolution(BaseEstimator):
 
-    def __init__(self, objective=None, n_features=None, n_pop=10, n_iter=100, random_state=None, bounds=None, F=0.8, cx_pb=0.6):
+    def __init__(self, objective=None, n_features=None, n_pop=10, n_iter=100, random_state=None, verbose=True, bounds=None, F=0.8, cx_pb=0.6):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.bounds = bounds
         self.F = F
         self.cx_pb = cx_pb
-        self.classifier = False
 
     def fit(self, X, y):
         X, y = check_X_y(X, y)
@@ -321,19 +320,17 @@ class DifferentialEvolution(BaseEstimator):
             self.n_features = 1 + X.shape[1]
         self.history_ = np.zeros(self.n_iter)
 
+        self.bounds_ = np.array([self.bounds] * self.n_features)
         self.mu_ = np.zeros(self.n_features)
         self.intercept_ = self.mu_[0]
         self.coef_ = np.array([self.mu_[1:]])
 
-        if self.classifier:
-            self.classes_ = np.unique(y)
-
-        min_bound, max_bound = self.bounds.T
+        min_bound, max_bound = self.bounds_.T
         pop = self.random_.uniform(
             min_bound, max_bound, (self.n_pop, self.n_features))
         fit = np.fromiter(map(self.objective.evaluate, pop), np.float)
 
-        for g in tqdm(range(self.n_iter)):
+        for g in tqdm(range(self.n_iter), disable=not self.verbose):
 
             for i in range(self.n_pop):
                 # choose random vectors
@@ -375,16 +372,16 @@ class DifferentialEvolution(BaseEstimator):
 
 class DifferentialEvolutionRegressor(DifferentialEvolution, LinearModel, RegressorMixin):
 
-    def __init__(self, objective=None, n_features=None, n_pop=10, n_iter=100, random_state=None, bounds=None, F=0.8, cx_pb=0.6):
+    def __init__(self, objective=None, n_features=None, n_pop=10, n_iter=100, random_state=None, verbose=True, bounds=None, F=0.8, cx_pb=0.6):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.bounds = bounds
         self.F = F
         self.cx_pb = cx_pb
-        self.classifier = False
 
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
@@ -392,16 +389,16 @@ class DifferentialEvolutionRegressor(DifferentialEvolution, LinearModel, Regress
 
 class DifferentialEvolutionClassifier(DifferentialEvolution, LinearClassifierMixin):
 
-    def __init__(self, objective=None, n_features=None, n_pop=10, n_iter=100, random_state=None, bounds=None, F=0.8, cx_pb=0.6):
+    def __init__(self, objective=None, n_features=None, n_pop=10, n_iter=100, random_state=None, verbose=True, bounds=None, F=0.8, cx_pb=0.6):
         self.objective = objective
         self.n_features = n_features
         self.n_pop = n_pop
         self.n_iter = n_iter
         self.random_state = random_state
+        self.verbose = verbose
         self.bounds = bounds
         self.F = F
         self.cx_pb = cx_pb
-        self.classifier = True
 
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
