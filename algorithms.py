@@ -338,7 +338,7 @@ class DifferentialEvolution(BaseEstimator):
                 x1, x2, x3 = pop[self.random_.choice(r_i, 3, replace=False)]
 
                 # create trial vector
-                trial = x1 + self.F * (x2 - x3)
+                trial = np.clip(x1 + self.F * (x2 - x3), min_bound, max_bound)
 
                 # determine crossover points
                 n = self.random_.randint(0, self.n_features - 1)
