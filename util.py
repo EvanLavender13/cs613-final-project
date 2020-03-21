@@ -27,16 +27,19 @@ def plot_lr_class(model, X, y, ax):
 
 
 def plot_cluster(model, X, y, axes):
-    print(type(model).__name__)
+    name = type(model).__name__
+    print(name)
     print("Homogeneity:  %s\nCompleteness: %s\nV-Measure:    %s" %
           homogeneity_completeness_v_measure(y, model.labels_))
     print("Inertia:      %s" % model.inertia_)
+    axes[0].set_title("Clusters")
     axes[0].scatter(model.cluster_centers_[:, 0], model.cluster_centers_[
         :, 1], marker="x", color="black", s=169, linewidths=3, zorder=10, label="Centroid")
     axes[0].scatter(X[:, 0], X[:, 1], c=model.labels_)
     axes[0].legend()
 
     if hasattr(model, "history_"):
+        axes[1].set_title(name + " Inertia")
         axes[1].set_xlabel("Iteration")
         axes[1].set_ylabel("Inertia")
         axes[1].plot(range(model.history_.shape[0]), model.history_)
