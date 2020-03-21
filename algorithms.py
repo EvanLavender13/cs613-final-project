@@ -23,9 +23,9 @@ class EvolutionStrategy(BaseEstimator):
 
     def fit(self, X, y):
         X, y = check_X_y(X, y)
-        self.objective.set_model(self, X, y)
         self.X_ = X
         self.y_ = y
+        self.objective.set_model(self)
         self.sort_ = False
 
         self.random_ = check_random_state(self.random_state)
@@ -361,9 +361,9 @@ class DifferentialEvolution(BaseEstimator):
 
     def fit(self, X, y):
         X, y = check_X_y(X, y)
-        self.objective.set_model(self, X, y)
         self.X_ = X
         self.y_ = y
+        self.objective.set_model(self)
 
         self.random_ = check_random_state(self.random_state)
         if not self.n_features:
@@ -399,24 +399,32 @@ class DifferentialEvolution(BaseEstimator):
                 # trial = x1 + self.F * (x2 - x3)
 
                 # scheme DE2
-                trial = x_i + self.lmbda * \
+                v = x_i + self.lmbda * \
                     (x_best - x_i) + self.F * (x2 - x3)
 
                 # determine crossover points
-                n = self.random_.randint(0, self.n_features - 1)
-                L = 1
+                # method from paper
+                # n = self.random_.randint(0, self.n_features - 1)
+                # L = 1
 
-                while self.random_.rand() < self.cx_pb and L < self.n_features:
-                    L += 1
+                # while self.random_.rand() < self.cx_pb and L < self.n_features:
+                #    L += 1
 
-                v = np.arange(n, n + L - 1) % self.n_features
-                u = np.copy(pop[i])
-                u[v] = trial[v]
+                # v = np.arange(n, n + L - 1) % self.n_features
+                # u = np.copy(pop[i])
+                # u[v] = trial[v]
 
-                f = self.objective.evaluate(u)
+                cx_points = self.random_.rand(self.n_features) < self.cx_pb
+                if not np.any(cx_points):
+                    cx_points[self.random_.randint(0, self.n_features)] = True
+
+                u = pop[i]
+                trial = np.where(cx_points, v, u)
+
+                f = self.objective.evaluate(trial)
                 if f > fit[i]:
                     fit[i] = f
-                    pop[i] = u
+                    pop[i] = trial
 
                     if f > fit[best_index]:
                         best_index = i
