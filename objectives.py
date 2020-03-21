@@ -23,31 +23,10 @@ class RSSObjective(Objective):
         return -error
 
 
-class ScoreObjective(Objective):
-
-    def evaluate(self, w):
-        self.model.intercept_ = w[0]
-        self.model.coef_ = np.array([w[1:]])
-        return self.model.score(self.model.X_, self.model.y_)
-
-
-class RidgeObjective(Objective):
-
-    def __init__(self, alpha=1.0):
-        self.alpha = alpha
-
-    def evaluate(self, w):
-        y_i = w[0] + np.dot(self.model.X_, w[1:])
-        penalty = self.alpha * np.linalg.norm(w, ord=2)
-        error = np.linalg.norm(self.model.y_ - y_i, ord=2) + penalty
-        return -error
-
-
 class CrossEntropyObjective(Objective):
 
     def set_model(self, model):
         self.model = model
-        self.model.classes_ = np.unique(self.model.y_)
 
     def sigmoid(self, y_i):
         return 1.0 / (1 + np.exp(-y_i))
@@ -57,3 +36,21 @@ class CrossEntropyObjective(Objective):
         error = np.sum(self.model.y_ * np.log(y_i + eps) +
                        (1 - self.model.y_) * np.log((1 - y_i) + eps))
         return error
+
+
+class KMeansObjective(Objective):
+
+    def evaluate(self, w):
+        n_dim = self.model.X_[0].shape[0]
+        n_features = self.model.n_features
+        ref_vectors = np.reshape(w, (int(n_features / n_dim), n_dim))
+
+        total_distance = 0
+        for sample in self.model.X_:
+            distance = np.zeros(ref_vectors.shape[0])
+            for i, ref in enumerate(ref_vectors):
+                distance[i] = np.linalg.norm(sample - ref) ** 2
+
+            total_distance += np.min(distance)
+
+        return -total_distance

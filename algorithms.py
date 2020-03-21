@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from scipy.stats import multivariate_normal
 from scipy.linalg import sqrtm
-from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
+from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin, ClusterMixin
 from sklearn.linear_model.base import LinearModel, LinearClassifierMixin
 from sklearn.utils.validation import check_X_y, check_array, check_random_state
 
@@ -21,8 +21,12 @@ class EvolutionStrategy(BaseEstimator):
         self.random_state = random_state
         self.verbose = verbose
 
-    def fit(self, X, y):
-        X, y = check_X_y(X, y)
+    def fit(self, X, y=None):
+        if y:
+            X, y = check_X_y(X, y)
+        else:
+            X = check_array(X)
+
         self.X_ = X
         self.y_ = y
         self.objective.set_model(self)
@@ -117,8 +121,43 @@ class SimpleESClassifier(SimpleES, LinearClassifierMixin):
         self.verbose = verbose
         self.sigma = sigma
 
+    def _pre_iterate(self):
+        self.classes_ = np.unique(self.y_)
+
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
+
+
+class SimpleESClustering(SimpleES, ClusterMixin):
+
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=1.0):
+        self.objective = objective
+        self.n_features = n_features
+        self.n_pop = n_pop
+        self.n_iter = n_iter
+        self.random_state = random_state
+        self.verbose = verbose
+        self.sigma = sigma
+
+    def _post_iterate(self, g):
+        n_dim = self.X_[0].shape[0]
+        ref_vectors = np.reshape(
+            self.mu_, (int(self.n_features / n_dim), n_dim))
+        labels = -np.ones(self.X_.shape[0])
+
+        inertia = 0
+        for i, sample in enumerate(self.X_):
+            distance = np.zeros(ref_vectors.shape[0])
+            for j, ref in enumerate(ref_vectors):
+                distance[j] = np.linalg.norm(sample - ref) ** 2
+
+            labels[i] = np.argmin(distance)
+            inertia += np.min(distance)
+
+        self.labels_ = labels
+        self.cluster_centers_ = ref_vectors
+        self.history_[g] = inertia
+        self.inertia_ = inertia
 
 
 class GeneticES(EvolutionStrategy):
@@ -190,8 +229,44 @@ class GeneticESClassifier(GeneticES, LinearClassifierMixin):
         self.sigma = sigma
         self.p_elite = p_elite
 
+    def _pre_iterate(self):
+        self.classes_ = np.unique(self.y_)
+
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
+
+
+class GeneticESClustering(GeneticES, ClusterMixin):
+
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=1.0, p_elite=0.1):
+        self.objective = objective
+        self.n_features = n_features
+        self.n_pop = n_pop
+        self.n_iter = n_iter
+        self.random_state = random_state
+        self.verbose = verbose
+        self.sigma = sigma
+        self.p_elite = p_elite
+
+    def _post_iterate(self, g):
+        n_dim = self.X_[0].shape[0]
+        ref_vectors = np.reshape(
+            self.mu_, (int(self.n_features / n_dim), n_dim))
+        labels = -np.ones(self.X_.shape[0])
+
+        inertia = 0
+        for i, sample in enumerate(self.X_):
+            distance = np.zeros(ref_vectors.shape[0])
+            for j, ref in enumerate(ref_vectors):
+                distance[j] = np.linalg.norm(sample - ref) ** 2
+
+            labels[i] = np.argmin(distance)
+            inertia += np.min(distance)
+
+        self.labels_ = labels
+        self.cluster_centers_ = ref_vectors
+        self.history_[g] = inertia
+        self.inertia_ = inertia
 
 
 class NaturalES(EvolutionStrategy):
@@ -244,8 +319,44 @@ class NaturalESClassifier(NaturalES, LinearClassifierMixin):
         self.sigma = sigma
         self.alpha = alpha
 
+    def _pre_iterate(self):
+        self.classes_ = np.unique(self.y_)
+
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
+
+
+class NaturalESClustering(NaturalES, ClusterMixin):
+
+    def __init__(self, objective=None, n_features=None, n_pop=100, n_iter=100, random_state=None, verbose=True, sigma=1.0, alpha=0.1):
+        self.objective = objective
+        self.n_features = n_features
+        self.n_pop = n_pop
+        self.n_iter = n_iter
+        self.random_state = random_state
+        self.verbose = verbose
+        self.sigma = sigma
+        self.alpha = alpha
+
+    def _post_iterate(self, g):
+        n_dim = self.X_[0].shape[0]
+        ref_vectors = np.reshape(
+            self.mu_, (int(self.n_features / n_dim), n_dim))
+        labels = -np.ones(self.X_.shape[0])
+
+        inertia = 0
+        for i, sample in enumerate(self.X_):
+            distance = np.zeros(ref_vectors.shape[0])
+            for j, ref in enumerate(ref_vectors):
+                distance[j] = np.linalg.norm(sample - ref) ** 2
+
+            labels[i] = np.argmin(distance)
+            inertia += np.min(distance)
+
+        self.labels_ = labels
+        self.cluster_centers_ = ref_vectors
+        self.history_[g] = inertia
+        self.inertia_ = inertia
 
 
 class CMAES(EvolutionStrategy):
@@ -359,8 +470,12 @@ class DifferentialEvolution(BaseEstimator):
         self.cx_pb = cx_pb
         self.lmbda = lmbda
 
-    def fit(self, X, y):
-        X, y = check_X_y(X, y)
+    def fit(self, X, y=None):
+        if y:
+            X, y = check_X_y(X, y)
+        else:
+            X = check_array(X)
+
         self.X_ = X
         self.y_ = y
         self.objective.set_model(self)
@@ -473,5 +588,43 @@ class DifferentialEvolutionClassifier(DifferentialEvolution, LinearClassifierMix
         self.cx_pb = cx_pb
         self.lmbda = lmbda
 
+    def _pre_iterate(self):
+        self.classes_ = np.unique(self.y_)
+
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
+
+
+class DifferentialEvolutionClustering(DifferentialEvolution, ClusterMixin):
+
+    def __init__(self, objective=None, n_features=None, n_pop=10, n_iter=100, random_state=None, verbose=True, bounds=None, F=0.8, cx_pb=0.7, lmbda=1.0):
+        self.objective = objective
+        self.n_features = n_features
+        self.n_pop = n_pop
+        self.n_iter = n_iter
+        self.random_state = random_state
+        self.verbose = verbose
+        self.bounds = bounds
+        self.F = F
+        self.cx_pb = cx_pb
+        self.lmbda = lmbda
+
+    def _post_iterate(self, g):
+        n_dim = self.X_[0].shape[0]
+        ref_vectors = np.reshape(
+            self.mu_, (int(self.n_features / n_dim), n_dim))
+        labels = -np.ones(self.X_.shape[0])
+
+        inertia = 0
+        for i, sample in enumerate(self.X_):
+            distance = np.zeros(ref_vectors.shape[0])
+            for j, ref in enumerate(ref_vectors):
+                distance[j] = np.linalg.norm(sample - ref) ** 2
+
+            labels[i] = np.argmin(distance)
+            inertia += np.min(distance)
+
+        self.labels_ = labels
+        self.cluster_centers_ = ref_vectors
+        self.history_[g] = inertia
+        self.inertia_ = inertia
