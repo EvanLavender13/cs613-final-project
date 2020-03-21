@@ -22,7 +22,7 @@ class EvolutionStrategy(BaseEstimator):
         self.verbose = verbose
 
     def fit(self, X, y=None):
-        if y:
+        if y is not None:
             X, y = check_X_y(X, y)
         else:
             X = check_array(X)
@@ -471,7 +471,7 @@ class DifferentialEvolution(BaseEstimator):
         self.lmbda = lmbda
 
     def fit(self, X, y=None):
-        if y:
+        if y is not None:
             X, y = check_X_y(X, y)
         else:
             X = check_array(X)
