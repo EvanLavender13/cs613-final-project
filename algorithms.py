@@ -122,6 +122,7 @@ class SimpleESClassifier(SimpleES, LinearClassifierMixin):
         self.sigma = sigma
 
     def _pre_iterate(self):
+        self.sort_ = True
         self.classes_ = np.unique(self.y_)
 
     def _post_iterate(self, g):
@@ -173,6 +174,7 @@ class GeneticES(EvolutionStrategy):
         self.p_elite = p_elite
 
     def _pre_iterate(self):
+        self.classes_ = np.unique(self.y_)
         self.sort_ = True
         self.n_elite_ = np.int(self.n_pop * self.p_elite)
         pop = self.mu_ + self.sigma * \
@@ -228,9 +230,6 @@ class GeneticESClassifier(GeneticES, LinearClassifierMixin):
         self.verbose = verbose
         self.sigma = sigma
         self.p_elite = p_elite
-
-    def _pre_iterate(self):
-        self.classes_ = np.unique(self.y_)
 
     def _post_iterate(self, g):
         self.history_[g] = self.score(self.X_, self.y_)
@@ -496,6 +495,7 @@ class DifferentialEvolution(BaseEstimator):
         fit = np.fromiter(map(self.objective.evaluate, pop), np.float)
         best_index = np.argmax(fit)
 
+        self._pre_iterate()
         for g in tqdm(range(self.n_iter), disable=not self.verbose):
 
             for i in range(self.n_pop):
@@ -551,6 +551,9 @@ class DifferentialEvolution(BaseEstimator):
             self._post_iterate(g)
 
         return self
+
+    def _pre_iterate(self):
+        pass
 
     def _post_iterate(self, g):
         pass
